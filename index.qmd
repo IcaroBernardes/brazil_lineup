@@ -12,11 +12,11 @@ library(ggiraph)
 library(ggpath)
 
 library(ggplot2)
+library(icons)
 library(readxl)
 library(sportyR)
 library(purrr)
 library(stringr)
-library(shadowtext)
 library(glue)
 
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE,
@@ -46,9 +46,36 @@ green_field <- "#195f0c"
 <!-- Connects to the CSS stylesheet -->
 <link href="www/styles.css" rel="stylesheet">
 
+<!-- Connects to the jQuery package -->
+<script src="https://code.jquery.com/jquery-3.6.1.js" integrity="sha256-3zlB5s2uwoUzrXK3BT7AX3FyvojsraNFxCc2vC/7pNI=" crossorigin="anonymous"></script>
+
+<script>
+$(function() {
+$("#plus").click(function() {
+  $("#teste").show("slow");
+  $("#plus svg").replaceWith($("#minus svg"))
+});
+});
+</script>
+
+<!-- Places the title -->
 <div id='title'>BRAZIL <strong>LINE</strong>UP</div>
 
-```{r, fig.width=16, fig.height=13}
+<!-- Places the subtitle structure -->
+<div id='subtitle'>
+<div id='subtitle-main'>Throughout history, Brazil's male football team has taken most of its players from Brazilian clubs.</div>
+<div id='plus'>`r icons::feather_icons("plus-circle")` MORE INFO</div>
+<div id='minus'>`r icons::feather_icons("minus-circle")`</div>
+</div>
+
+
+
+<div id='teste'>teste</div>
+
+<!-- Clears the float attribute -->
+<div style='clear:both;'></div>
+
+```{r, fig.width=17, fig.height=13}
 
 ################################################################################
 # 1. Preparation of the field
@@ -57,7 +84,7 @@ field <- sportyR::geom_soccer(
     league = "fifa",
     rotation = -90,
     xlims = c(-65,65),
-    ylims = c(-85,75),
+    ylims = c(-90,80),
     pitch_updates = list(
         pitch_length = 120,
         pitch_width = 80
@@ -147,11 +174,11 @@ crest <- dplyr::tibble(
 ## Creates a static version
 static <- field$plot +
     
-    ### Places the uniforms, region names and shadowed amount of times their playeres were in the lineup
-    geom_from_path_interactive(aes(x = x, y = y, path = "www/uniform.png", data_id = data_id),
-                               width = 0.09, height = 0.09, data = positions) +
-    geom_shadowtext(aes(x = x, y = y, label = Qtd),
-                    size = 7, color = green_br, family = "Montserrat", data = positions) +
+    ### Places the points, region names and amount of times their players were in the lineup
+    geom_point_interactive(aes(x = x, y = y, data_id = data_id), shape = 21, size = 23, stroke = 5,
+                           fill = yellow_br, color = green_br, data = positions) +
+    geom_text_interactive(aes(x = x, y = y, label = Qtd, data_id = data_id),
+                          size = 8, color = green_br, family = "Montserrat", data = positions) +
     geom_text_interactive(aes(x = x, y = y, label = Origin, data_id = data_id),
                           size = 4.5, color = "white", nudge_y = -6, family = "Quicksand",
                           vjust = 1, lineheight = 0.8, data = positions) +
@@ -167,6 +194,7 @@ static <- field$plot +
     geom_point_interactive(aes(x = -53, y = 52, data_id = 1), shape = 21, size = 50, stroke = 5,
                            fill = "white", color = yellow_br) +
     
+    ### Places the teams names and amount of times their playeres were in the lineup
     geom_text_interactive(aes(x = x, y = y, label = Qtd, data_id = data_id),
                           hjust = 1, size = 7, nudge_x = -5.3, nudge_y = 1.4,
                           fontface = "bold", family = "Quicksand",
@@ -176,23 +204,21 @@ static <- field$plot +
                           family = "Quicksand",
                           color = "white", data = crest) +
     geom_rect_interactive(aes(xmin = -55, xmax = -80, data_id = 1,
-                              ymin = seq(36, -57, length.out = 10)-2.6,
-                              ymax = seq(36, -57, length.out = 10)+2.6),
+                              ymin = seq(36, -57, length.out = 10)-2.7,
+                              ymax = seq(36, -57, length.out = 10)+2.7),
                           fill = green_field) +
     
+    ### Places the teams crests
     geom_point(aes(x = -53, y = seq(36, -57, length.out = 10)), shape = 21, size = 20, stroke = 5,
                fill = "white", color = blue_br) +
     geom_from_path_interactive(aes(x = x, y = y, path = path, data_id = data_id, tooltip = tooltip),
                                width = 0.04, height = 0.04, data = crest) +
     geom_point_interactive(aes(x = -53, y = seq(36, -57, length.out = 10), data_id = 1), shape = 21, size = 20, stroke = 5,
                            fill = "white", color = blue_br)
-    
-    
-    
 
-
+## Creates the interactive version and customizes it
 ggiraph::girafe(ggobj = static, 
-                width_svg = 16,
+                width_svg = 17,
                 height_svg = 13,
                 options = list(
                     opts_tooltip(
@@ -214,4 +240,3 @@ ggiraph::girafe(ggobj = static,
                 ))
 
 ```
-

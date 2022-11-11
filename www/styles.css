@@ -1,11 +1,46 @@
 body {
   font-family: 'Quicksand', sans-serif;
   background: #195f0c;
+  color: white;
 }
 
 #title {
   font-size: 100px;
   line-height: 120px;
-  color: white;
   margin-left: 18px;
+}
+
+#subtitle {
+  display: flex;
+  align-items: center;
+}
+
+#subtitle-main {
+  float: left;
+  margin-left: 26px;
+  width: 70%;
+}
+
+#plus {
+  float: left;
+  margin-left: 10px;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+#plus svg {
+  color: #195f0c;
+  fill: white;
+  height: 35px !important;
+  margin-right: 5px;
+}
+
+#teste {
+  display: none;
+}
+
+#minus svg {
+  display: none !important;
 }
