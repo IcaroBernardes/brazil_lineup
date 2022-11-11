@@ -1,0 +1,11 @@
+body {
+  font-family: 'Quicksand', sans-serif;
+  background: #195f0c;
+}
+
+#title {
+  font-size: 100px;
+  line-height: 120px;
+  color: white;
+  margin-left: 18px;
+}

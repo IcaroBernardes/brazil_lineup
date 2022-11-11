@@ -1,0 +1,217 @@
+---
+format: html
+---
+
+```{r setup, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
+
+################################################################################
+# 0. Management of libraries, data and chunk options
+library(cropcircles)
+library(dplyr)
+library(ggiraph)
+library(ggpath)
+
+library(ggplot2)
+library(readxl)
+library(sportyR)
+library(purrr)
+library(stringr)
+library(shadowtext)
+library(glue)
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE,
+                      error = FALSE, message = FALSE)
+
+## Loads the data
+data <- readxl::read_xlsx("data.xlsx")
+
+## Loads a function with a ggiraph version of ggpath::geom_from_path
+source("R/girafa/interactive_geoms.R")
+
+## Defines the RGB code of the colors of the Brazilian flag
+green_br <- "#009c3b"
+yellow_br <- "#ffdf00"
+blue_br <- "#002776"
+
+## Defines the color of the field
+green_field <- "#195f0c"
+
+```
+
+<!-- Connects to Google Fonts and gets the Quicksand font -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand&family=Montserrat&display=swap" rel="stylesheet">
+
+<!-- Connects to the CSS stylesheet -->
+<link href="www/styles.css" rel="stylesheet">
+
+<div id='title'>BRAZIL <strong>LINE</strong>UP</div>
+
+```{r, fig.width=16, fig.height=13}
+
+################################################################################
+# 1. Preparation of the field
+## Loads a football field and customizes it
+field <- sportyR::geom_soccer(
+    league = "fifa",
+    rotation = -90,
+    xlims = c(-65,65),
+    ylims = c(-85,75),
+    pitch_updates = list(
+        pitch_length = 120,
+        pitch_width = 80
+    )) + 
+    theme_void() +
+    theme(
+        plot.margin = margin(0,0,0,0),
+        plot.background = element_rect(fill = green_field, colour = green_field)
+    )
+
+## Gets the list object used to build the ggplot field and
+## changes the alpha (color) and size of the lines
+field <- ggplot2::ggplot_build(field)
+field[["plot"]][["layers"]] %>% iwalk(function(x,y) {
+    
+    if (x[["aes_params"]][["colour"]] == "#ffffff00") {
+        colour = "#ffffff"
+    } else {
+        colour = x[["aes_params"]][["colour"]]
+    }
+    
+    field[["plot"]][["layers"]][[y]][["aes_params"]][["colour"]] = colour
+    field[["plot"]][["layers"]][[y]][["computed_geom_params"]][["colour"]] = colour
+    field[["plot"]][["layers"]][[y]][["aes_params"]][[3]] = 2
+    names(field[["plot"]][["layers"]][[y]][["aes_params"]])[3] = "size"
+    
+})
+
+## Summarizes the count of athletes by region
+region <- data %>% 
+    dplyr::group_by(Origin) %>% 
+    dplyr::summarise(Qtd = sum(Qtd)) %>% 
+    dplyr::arrange(desc(Qtd))
+
+## Defines positions of the shirts and adds the summarized data
+positions <- dplyr::tibble(
+    x = c(-13, 15,
+          seq(-30, 30, length.out = 4),
+          seq(-30, 30, length.out = 4),
+          0,
+          rep(56, 9)),
+    y = c(34,29,
+          1,-1,-4,-1,
+          -27,-30,-30,-27,
+          -51,
+          seq(56, -54, length.out = 9))
+)
+positions <- positions %>% 
+    dplyr::bind_cols(region) %>% 
+    dplyr::mutate(data_id = tolower(Origin),
+                  data_id = str_replace_all(data_id, "[:space:]", "_"))
+
+## 
+shape <- dplyr::tibble(
+    x = -53,
+    y = 52,
+    path = list.files("www/shapes", full.names = TRUE),
+    data_id = list.files("www/shapes")
+) %>% 
+    dplyr::mutate(data_id = stringr::str_remove(data_id, ".png"))
+
+
+teams <- data %>% 
+    dplyr::group_by(Origin) %>% 
+    dplyr::arrange(Origin, desc(Qtd)) %>% 
+    dplyr::mutate(rank = 1:n()) %>% 
+    dplyr::ungroup() %>% 
+    dplyr::mutate(data_id = tolower(Origin),
+                  data_id = str_replace_all(data_id, "[:space:]", "_"),
+                  name = tolower(Clube),
+                  name = str_replace_all(name, "([:space:]|-)", "_"),
+                  tooltip = glue::glue("<strong>Players: </strong>{Atletas}")) %>% 
+    dplyr::arrange(name) %>% 
+    dplyr::mutate(path = list.files("www/teams", full.names = TRUE),
+                  path = cropcircles::circle_crop(path))
+
+crest <- dplyr::tibble(
+    x = -53,
+    y = seq(36, -57, length.out = 10),
+    rank = 1:10
+) %>% 
+    dplyr::left_join(teams) %>% 
+    dplyr::select(x, y, path, Clube, Qtd, data_id, tooltip)
+
+################################################################################
+# 2. Construction of the final product
+## Creates a static version
+static <- field$plot +
+    
+    ### Places the uniforms, region names and shadowed amount of times their playeres were in the lineup
+    geom_from_path_interactive(aes(x = x, y = y, path = "www/uniform.png", data_id = data_id),
+                               width = 0.09, height = 0.09, data = positions) +
+    geom_shadowtext(aes(x = x, y = y, label = Qtd),
+                    size = 7, color = green_br, family = "Montserrat", data = positions) +
+    geom_text_interactive(aes(x = x, y = y, label = Origin, data_id = data_id),
+                          size = 4.5, color = "white", nudge_y = -6, family = "Quicksand",
+                          vjust = 1, lineheight = 0.8, data = positions) +
+    
+    ### Places the line that crosses shapes and crests
+    geom_segment(aes(x = -53, xend = -53, y = 52, yend = -57), size = 4, color = blue_br) +
+    
+    ### Places the regions shapes
+    geom_point(aes(x = -53, y = 52), shape = 21, size = 50, stroke = 5,
+               fill = "white", color = yellow_br) +
+    geom_from_path_interactive(aes(x = x, y = y, path = path, data_id = data_id),
+                               width = 0.09, height = 0.09, data = shape) +
+    geom_point_interactive(aes(x = -53, y = 52, data_id = 1), shape = 21, size = 50, stroke = 5,
+                           fill = "white", color = yellow_br) +
+    
+    geom_text_interactive(aes(x = x, y = y, label = Qtd, data_id = data_id),
+                          hjust = 1, size = 7, nudge_x = -5.3, nudge_y = 1.4,
+                          fontface = "bold", family = "Quicksand",
+                          color = "white", data = crest) +
+    geom_text_interactive(aes(x = x, y = y, label = Clube, data_id = data_id),
+                          hjust = 1, size = 4.5, nudge_x = -5.5, nudge_y = -1.4,
+                          family = "Quicksand",
+                          color = "white", data = crest) +
+    geom_rect_interactive(aes(xmin = -55, xmax = -80, data_id = 1,
+                              ymin = seq(36, -57, length.out = 10)-2.6,
+                              ymax = seq(36, -57, length.out = 10)+2.6),
+                          fill = green_field) +
+    
+    geom_point(aes(x = -53, y = seq(36, -57, length.out = 10)), shape = 21, size = 20, stroke = 5,
+               fill = "white", color = blue_br) +
+    geom_from_path_interactive(aes(x = x, y = y, path = path, data_id = data_id, tooltip = tooltip),
+                               width = 0.04, height = 0.04, data = crest) +
+    geom_point_interactive(aes(x = -53, y = seq(36, -57, length.out = 10), data_id = 1), shape = 21, size = 20, stroke = 5,
+                           fill = "white", color = blue_br)
+    
+    
+    
+
+
+ggiraph::girafe(ggobj = static, 
+                width_svg = 16,
+                height_svg = 13,
+                options = list(
+                    opts_tooltip(
+                        css = glue::glue("width:300px;background:{blue_br};color:white;padding:20px;border-radius:20px;"),
+                        offy = 10,
+                        opacity = 1
+                    ),
+                    opts_selection_inv(
+                        css = "display:none;"
+                    ),
+                    opts_selection(
+                        css = "opacity:1;",
+                        type = "single",
+                        only_shiny = FALSE
+                    ),
+                    opts_hover(
+                        css = "opacity:1;cursor:pointer;"
+                    )
+                ))
+
+```
+
