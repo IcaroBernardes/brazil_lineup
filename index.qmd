@@ -10,14 +10,13 @@ library(cropcircles)
 library(dplyr)
 library(ggiraph)
 library(ggpath)
-
 library(ggplot2)
+library(glue)
 library(icons)
+library(purrr)
 library(readxl)
 library(sportyR)
-library(purrr)
 library(stringr)
-library(glue)
 
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE,
                       error = FALSE, message = FALSE)
@@ -49,11 +48,18 @@ green_field <- "#195f0c"
 <!-- Connects to the jQuery package -->
 <script src="https://code.jquery.com/jquery-3.6.1.js" integrity="sha256-3zlB5s2uwoUzrXK3BT7AX3FyvojsraNFxCc2vC/7pNI=" crossorigin="anonymous"></script>
 
+<!-- Establishes triggers to show and hide buttons and subtitle details -->
 <script>
 $(function() {
 $("#plus").click(function() {
-  $("#teste").show("slow");
-  $("#plus svg").replaceWith($("#minus svg"))
+  $("#details").slideDown("slow");
+  $("#plus").fadeToggle({duration: 200, queue: false});
+  $("#minus").fadeToggle({duration: 200, queue: false});
+});
+$("#minus").click(function() {
+  $("#details").slideUp("slow");
+  $("#minus").fadeToggle({duration: 200, queue: false});
+  $("#plus").fadeToggle({duration: 200, queue: false});
 });
 });
 </script>
@@ -63,19 +69,31 @@ $("#plus").click(function() {
 
 <!-- Places the subtitle structure -->
 <div id='subtitle'>
-<div id='subtitle-main'>Throughout history, Brazil's male football team has taken most of its players from Brazilian clubs.</div>
-<div id='plus'>`r icons::feather_icons("plus-circle")` MORE INFO</div>
+<div id='subtitle-main'>Throughout history, Brazil's male football team has
+taken most of its players from Brazilian clubs.
+<strong style='color:#ffdf00;'>Click</strong> on the
+<strong style='color:#ffdf00;'>yellow</strong> circles to see 
+which are the teams of a region. Click again to reset.
+<span style='color:#002776;text-shadow: #002776 1px 1px;'>Hover</span> the cursor
+on the <span style='color:#002776;text-shadow: #002776 1px 1px;'>blue</span>
+circles with teams crests to see the names of the players.</div>
+<div id='info'>
+<div id='plus'>`r icons::feather_icons("plus-circle")`</div>
 <div id='minus'>`r icons::feather_icons("minus-circle")`</div>
-</div>
+<div id='more'>MORE INFO</div>
+</div></div>
 
-
-
-<div id='teste'>teste</div>
+<!-- Places the subtitle details -->
+<div id='details'>This data comprises all 22 World Cups between 1930 and 2022.
+The numbers represent how many times players from a team or land were called to
+play for Brazil in a World Cup. It also shows<strong> where </strong>the player
+was playing, rather than their birthplace. Data comes from a Globo Esporte 
+<a href='https://ge.globo.com/futebol/selecao-brasileira/noticia/2022/11/01/qual-clube-teve-mais-jogadores-convocados-pela-selecao-brasileira-para-copas-do-mundo.ghtml' target='_blank'>article</a>.</div>
 
 <!-- Clears the float attribute -->
 <div style='clear:both;'></div>
 
-```{r, fig.width=17, fig.height=13}
+```{r, fig.width=16, fig.height=13}
 
 ################################################################################
 # 1. Preparation of the field
@@ -84,7 +102,7 @@ field <- sportyR::geom_soccer(
     league = "fifa",
     rotation = -90,
     xlims = c(-65,65),
-    ylims = c(-90,80),
+    ylims = c(-85,75),
     pitch_updates = list(
         pitch_length = 120,
         pitch_width = 80
@@ -119,13 +137,13 @@ region <- data %>%
     dplyr::summarise(Qtd = sum(Qtd)) %>% 
     dplyr::arrange(desc(Qtd))
 
-## Defines positions of the shirts and adds the summarized data
+## Defines positions of the main bubbles and adds the summarized data
 positions <- dplyr::tibble(
     x = c(-13, 15,
           seq(-30, 30, length.out = 4),
           seq(-30, 30, length.out = 4),
           0,
-          rep(56, 9)),
+          rep(58, 9)),
     y = c(34,29,
           1,-1,-4,-1,
           -27,-30,-30,-27,
@@ -137,7 +155,7 @@ positions <- positions %>%
     dplyr::mutate(data_id = tolower(Origin),
                   data_id = str_replace_all(data_id, "[:space:]", "_"))
 
-## 
+## Defines positions of the shapes of the lands
 shape <- dplyr::tibble(
     x = -53,
     y = 52,
@@ -146,7 +164,7 @@ shape <- dplyr::tibble(
 ) %>% 
     dplyr::mutate(data_id = stringr::str_remove(data_id, ".png"))
 
-
+## Summarizes the data by team
 teams <- data %>% 
     dplyr::group_by(Origin) %>% 
     dplyr::arrange(Origin, desc(Qtd)) %>% 
@@ -161,6 +179,7 @@ teams <- data %>%
     dplyr::mutate(path = list.files("www/teams", full.names = TRUE),
                   path = cropcircles::circle_crop(path))
 
+## Defines positions of the teams crests
 crest <- dplyr::tibble(
     x = -53,
     y = seq(36, -57, length.out = 10),
@@ -180,7 +199,7 @@ static <- field$plot +
     geom_text_interactive(aes(x = x, y = y, label = Qtd, data_id = data_id),
                           size = 8, color = green_br, family = "Montserrat", data = positions) +
     geom_text_interactive(aes(x = x, y = y, label = Origin, data_id = data_id),
-                          size = 4.5, color = "white", nudge_y = -6, family = "Quicksand",
+                          size = 4.5, color = "white", nudge_y = -5.8, family = "Quicksand",
                           vjust = 1, lineheight = 0.8, data = positions) +
     
     ### Places the line that crosses shapes and crests
@@ -188,13 +207,13 @@ static <- field$plot +
     
     ### Places the regions shapes
     geom_point(aes(x = -53, y = 52), shape = 21, size = 50, stroke = 5,
-               fill = "white", color = yellow_br) +
+               fill = "white", color = blue_br) +
     geom_from_path_interactive(aes(x = x, y = y, path = path, data_id = data_id),
                                width = 0.09, height = 0.09, data = shape) +
     geom_point_interactive(aes(x = -53, y = 52, data_id = 1), shape = 21, size = 50, stroke = 5,
-                           fill = "white", color = yellow_br) +
+                           fill = "white", color = blue_br) +
     
-    ### Places the teams names and amount of times their playeres were in the lineup
+    ### Places the teams names and amount of times their players were in the lineup
     geom_text_interactive(aes(x = x, y = y, label = Qtd, data_id = data_id),
                           hjust = 1, size = 7, nudge_x = -5.3, nudge_y = 1.4,
                           fontface = "bold", family = "Quicksand",
@@ -214,11 +233,11 @@ static <- field$plot +
     geom_from_path_interactive(aes(x = x, y = y, path = path, data_id = data_id, tooltip = tooltip),
                                width = 0.04, height = 0.04, data = crest) +
     geom_point_interactive(aes(x = -53, y = seq(36, -57, length.out = 10), data_id = 1), shape = 21, size = 20, stroke = 5,
-                           fill = "white", color = blue_br)
+                           fill = "white", color = blue_br) 
 
 ## Creates the interactive version and customizes it
 ggiraph::girafe(ggobj = static, 
-                width_svg = 17,
+                width_svg = 16,
                 height_svg = 13,
                 options = list(
                     opts_tooltip(
@@ -240,3 +259,14 @@ ggiraph::girafe(ggobj = static,
                 ))
 
 ```
+
+<div id='credentials'>
+<img src="www/profile.jpg">
+<div id='credentials-text'>
+<strong>Graphic by: Ícaro Bernardes</strong>
+`r icons::fontawesome("github")` <a href = "https://github.com/IcaroBernardes" target = "_blank">@IcaroBernardes</a><br>
+`r icons::fontawesome("linkedin")` <a href = "https://www.linkedin.com/in/icarobsc" target = "_blank">icarobsc</a><br>
+`r icons::fontawesome("twitter")` <a href = "https://twitter.com/icarobsc" target = "_blank">@IcaroBSC</a><br>
+<strong>Data by: Globo Esporte</strong>
+</div>
+</div>

@@ -1,46 +1,111 @@
+/* General properties */
 body {
   font-family: 'Quicksand', sans-serif;
-  background: #195f0c;
+  background: #0c2d06;
   color: white;
 }
 
-#title {
-  font-size: 100px;
-  line-height: 120px;
-  margin-left: 18px;
+main {
+  background: #195f0c;
+  margin: 30px 0 0 0;
+  padding: 20px 20px 50px 20px;
+  border-radius: 50px;
+  border: #061703 5px solid;
 }
 
+a {
+  color: #ffdf00;
+  text-decoration: none;
+}
+
+a:hover {
+  color: white;
+}
+
+/* Title section */
+#title {
+  font-size: 100px;
+  line-height: 100px;
+  margin-left: 18px;
+  margin-bottom: 20px;
+}
+
+/* Subtitle section */
 #subtitle {
   display: flex;
   align-items: center;
+  margin-bottom: 20px;
 }
 
 #subtitle-main {
   float: left;
   margin-left: 26px;
   width: 70%;
+  font-size: 16px;
 }
 
-#plus {
+#info {
   float: left;
   margin-left: 10px;
   font-size: 10px;
-  cursor: pointer;
   display: flex;
   align-items: center;
 }
 
-#plus svg {
+#plus svg, #minus svg {
   color: #195f0c;
   fill: white;
   height: 35px !important;
-  margin-right: 5px;
 }
 
-#teste {
+#plus, #minus {
+  position: absolute;
+  cursor: pointer;
+}
+
+#minus {
   display: none;
 }
 
-#minus svg {
-  display: none !important;
+#more {
+  position: relative;
+  left: 40px;
+}
+
+#details {
+  display: none;
+  margin-left: 27px;
+  margin-bottom: 10px;
+  font-size: 10px;
+  width: 80%;
+}
+
+/* Credentials section */
+#credentials {
+  margin: 40px 0 0 30px;
+  fill: white;
+  display: flex;
+  align-items: center;
+}
+
+#credentials-text, #credentials img {
+  float: left;
+}
+
+#credentials img {
+  width: 30%;
+  max-width: 150px;
+  border-radius: 75px;
+  border: #ffdf00 6px solid;
+  margin-right: 40px;
+}
+
+#credentials-text strong {
+  font-size: 20px;
+  margin: 5px 0;
+  display: block;
+}
+
+#credentials-text svg {
+  margin-right: 10px;
 }
